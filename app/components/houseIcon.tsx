@@ -2,7 +2,7 @@ export default function HouseIcon() {
   return (
     <svg
       fill="#fff"
-      className="h-3 w-3 md:h-7 md:w-7"
+      className="h-3 w-3 md:h-6 md:w-6"
       version="1.1"
       id="Layer_1"
       xmlns="http://www.w3.org/2000/svg"
