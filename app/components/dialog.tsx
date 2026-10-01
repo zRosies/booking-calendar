@@ -47,7 +47,7 @@ const Dialog: React.FC<ModalProps> = ({
       setMemberName("");
       setPhone("");
       setAddress("");
-      setNotes("Almoço da ala");
+      setNotes("");
     }
   }, [event, isOpen]);
 
@@ -70,9 +70,7 @@ const Dialog: React.FC<ModalProps> = ({
 
     setIsLoading((prev) => ({ ...prev, save: true }));
     try {
-      const targetDate = event
-        ? event.date
-        : dayPicked.toISOString();
+      const targetDate = event ? event.date : dayPicked.toISOString();
 
       const newOrUpdatedEvent: Events = {
         date: targetDate,
@@ -127,7 +125,9 @@ const Dialog: React.FC<ModalProps> = ({
                 {isEditing ? "Detalhes do Almoço" : "Marcar Almoço"}
               </h2>
               <p className="text-xs font-semibold text-[#1e3a8a] capitalize">
-                {format(dayPicked, "EEEE, d 'de' MMMM 'de' yyyy", { locale: pt })}
+                {format(dayPicked, "EEEE, d 'de' MMMM 'de' yyyy", {
+                  locale: pt,
+                })}
               </p>
             </div>
           </div>
@@ -143,7 +143,10 @@ const Dialog: React.FC<ModalProps> = ({
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto custom-scroll">
+        <form
+          onSubmit={handleSubmit}
+          className="p-5 sm:p-6 space-y-4 overflow-y-auto custom-scroll"
+        >
           {/* Member Name */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
@@ -242,7 +245,9 @@ const Dialog: React.FC<ModalProps> = ({
               className="order-1 sm:order-2 flex-1 px-5 py-2.5 rounded-xl bg-[#1e3a8a] hover:bg-[#172554] active:bg-[#0f2042] text-white font-bold text-sm shadow-sm hover:shadow flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
               {isLoading.save && <LuLoader2 className="w-4 h-4 animate-spin" />}
-              <span>{isEditing ? "Salvar Alterações" : "Confirmar Agendamento"}</span>
+              <span>
+                {isEditing ? "Salvar Alterações" : "Confirmar Agendamento"}
+              </span>
             </button>
           </div>
         </form>

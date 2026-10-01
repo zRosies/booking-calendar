@@ -17,6 +17,11 @@ export const metadata: Metadata = {
   title: "Calendário Ala Galeão",
   description:
     "Calendário dos missionários da igreja de jesus cristo dos santos dos últimos dias na ala galeão",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

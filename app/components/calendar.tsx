@@ -349,7 +349,7 @@ const Calendar = () => {
                   <div
                     key={`month-day-${index}`}
                     onClick={() => handleOpenEditDialog(day, dayEvent)}
-                    className={`relative rounded-lg sm:rounded-2xl md:rounded-[22px] border-2 border-[#1e3a8a] shadow-[0_2px_10px_rgba(15,32,66,0.06)] sm:shadow-[0_4px_16px_rgba(15,32,66,0.08)] hover:shadow-lg p-0.5 sm:p-1.5 md:p-2.5 min-h-[54px] sm:min-h-[85px] md:min-h-[110px] lg:min-h-[125px] flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.01] group ${
+                    className={`relative rounded-lg sm:rounded-2xl md:rounded-[22px] border-2 border-[#4069d8] shadow-[0_2px_10px_rgba(15,32,66,0.06)] sm:shadow-[0_4px_16px_rgba(15,32,66,0.08)] hover:shadow-lg p-0.5 sm:p-1.5 md:p-2.5 min-h-[54px] sm:min-h-[85px] md:min-h-[110px] lg:min-h-[125px] flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.01] group ${
                       isCurrentToday
                         ? "bg-[#fefce8] ring-1 sm:ring-2 ring-amber-300/80"
                         : "bg-white"
@@ -382,7 +382,7 @@ const Calendar = () => {
                         {dayEvent.memberName}
                       </p>
                       <p className="hidden sm:block text-[#1e3a8a] text-[8px] sm:text-[10px] md:text-xs truncate font-semibold mt-0.5">
-                        Almoço da ala
+                        {dayEvent.notes || "Sem observações"}
                       </p>
                     </div>
                   </div>
