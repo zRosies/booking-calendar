@@ -1,12 +1,6 @@
-import { ObjectId, PushOperator } from "mongodb";
-import { initDb } from "../connect";
-
-export async function getMonthData() {
-  const collection = await initDb("calendar", "months");
-  const data = collection.find({}).toArray();
-
-  return data;
-}
+import { CalendarService } from "../services/calendar.service";
+import { MigrationService } from "../services/migration.service";
+import { getEventsCollection, getDb } from "../connect";
 
 export interface Events {
   date: string;
@@ -16,85 +10,141 @@ export interface Events {
   notes: string;
 }
 
-interface EventsDocument extends Document {
-  _id: ObjectId;
-  events: Event[]; // Array of Event objects
-}
-
-export async function BookLunch(newEvent: Events) {
-  const collection = await initDb("calendar", "months");
-
-  const result = await collection.updateOne(
-    { _id: new ObjectId("6727b7ef0ba079eef065cbd3") },
-    {
-      $push: {
-        events: {
-          ...newEvent,
-        },
-      } as PushOperator<EventsDocument>,
-    }
-  );
-
-  if (result.modifiedCount > 0) {
-    return [{ messsage: "Booked date deleted successfully" }, { status: 200 }];
-  }
-  return [
-    { messsage: `No booked date found with this ID: ${newEvent.date}` },
-    { status: 404 },
-  ];
-}
-export async function UpdateBookedDate(newEvent: Events) {
-  const collection = await initDb("calendar", "months");
-
-  console.log(newEvent);
+/**
+ * Retorna os dados da Ward (Ala) com seus eventos populados.
+ * Retorna no formato [{ _id: wardId, events: [...] }] garantindo compatibilidade
+ * retroativa com o frontend (data[0]?.events).
+ */
+export async function getMonthData() {
   try {
-    const result = await collection.updateOne(
-      { "events.date": newEvent.date },
+    const ward = await CalendarService.getDefaultWard();
+    const eventsCol = await getEventsCollection();
+
+    // Verificação de auto-migração: se a collection events estiver vazia e months tiver dados
+    const eventsCount = await eventsCol.countDocuments();
+    if (eventsCount === 0) {
+      const db = await getDb();
+      const monthsCol = db.collection("months");
+      const monthsCount = await monthsCol.countDocuments();
+      if (monthsCount > 0) {
+        console.log("Collection 'events' vazia detectada. Executando migração inicial automática...");
+        await MigrationService.runMigration();
+      }
+    }
+
+    // Busca eventos da Ward com $lookup na collection 'members'
+    const populatedEvents = await CalendarService.getEventsByWard(ward._id);
+
+    return [
       {
-        $set: {
-          "events.$": {
-            ...newEvent,
-          },
-        },
+        _id: ward._id,
+        name: ward.name,
+        events: populatedEvents,
+      },
+    ];
+  } catch (error) {
+    console.error("Erro em getMonthData:", error);
+    throw new Error(`Erro ao buscar dados do calendário: ${error}`);
+  }
+}
+
+/**
+ * Criação de novo compromisso/almoço
+ * 1. Encontra ou cria o membro na collection 'members'
+ * 2. Valida existência de Ward e Member
+ * 3. Valida event.wardId === member.wardId
+ * 4. Insere o evento na collection 'events'
+ */
+export async function BookLunch(newEvent: Events) {
+  try {
+    const ward = await CalendarService.getDefaultWard();
+
+    // Encontra ou cadastra o Membro com dados fornecidos
+    const member = await CalendarService.findOrCreateMember(ward._id, {
+      name: newEvent.memberName,
+      address: newEvent.address,
+      phone: newEvent.phone,
+    });
+
+    // Criação do Event com validação de wardId e timestamps
+    await CalendarService.createEvent({
+      wardId: ward._id,
+      memberId: member._id,
+      date: newEvent.date,
+      notes: newEvent.notes,
+    });
+
+    return [{ messsage: "Almoço agendado com sucesso" }, { status: 200 }];
+  } catch (error) {
+    console.error("Erro em BookLunch:", error);
+    return [
+      { messsage: `Erro ao agendar almoço: ${error instanceof Error ? error.message : error}` },
+      { status: 400 },
+    ];
+  }
+}
+
+/**
+ * Atualização de compromisso/almoço
+ */
+export async function UpdateBookedDate(newEvent: Events) {
+  try {
+    const ward = await CalendarService.getDefaultWard();
+
+    // Atualiza ou encontra o membro
+    const member = await CalendarService.findOrCreateMember(ward._id, {
+      name: newEvent.memberName,
+      address: newEvent.address,
+      phone: newEvent.phone,
+    });
+
+    // Atualiza o evento
+    const updated = await CalendarService.updateEvent(
+      { date: newEvent.date, wardId: ward._id },
+      {
+        memberId: member._id,
+        date: newEvent.date,
+        notes: newEvent.notes,
       }
     );
 
-    console.log(result);
-    if (result.modifiedCount > 0) {
-      return [
-        { messsage: "Booked date deleted successfully" },
-        { status: 200 },
-      ];
+    if (updated) {
+      return [{ messsage: "Almoço atualizado com sucesso" }, { status: 200 }];
     }
+
     return [
-      { messsage: `No booked date found with this ID: ${newEvent.date}` },
+      { messsage: `Nenhum almoço encontrado para a data: ${newEvent.date}` },
       { status: 404 },
     ];
   } catch (error) {
-    throw new Error(`Error deleting booked date: ${error}`);
+    console.error("Erro em UpdateBookedDate:", error);
+    return [
+      { messsage: `Erro ao atualizar almoço: ${error instanceof Error ? error.message : error}` },
+      { status: 400 },
+    ];
   }
 }
+
+/**
+ * Exclusão de compromisso/almoço
+ */
 export async function DeleteBookedDate(dateId: string) {
-  const collection = await initDb("calendar", "months");
-
   try {
-    const result = await collection.updateOne(
-      { "events.date": dateId },
-      { $pull: { events: { date: dateId } } as PushOperator<EventsDocument> }
-    );
+    const deleted = await CalendarService.deleteEvent({ date: dateId });
 
-    console.log(result);
-    if (result.modifiedCount > 0) {
-      return [
-        { messsage: "Booked date deleted successfully" },
-        { status: 200 },
-      ];
+    if (deleted) {
+      return [{ messsage: "Almoço cancelado com sucesso" }, { status: 200 }];
     }
+
     return [
-      { messsage: `No booked date found with this ID: ${dateId}` },
+      { messsage: `Nenhum almoço encontrado com o identificador: ${dateId}` },
       { status: 404 },
     ];
   } catch (error) {
-    throw new Error(`Error deleting booked date: ${error}`);
+    console.error("Erro em DeleteBookedDate:", error);
+    return [
+      { messsage: `Erro ao cancelar almoço: ${error instanceof Error ? error.message : error}` },
+      { status: 400 },
+    ];
   }
 }
