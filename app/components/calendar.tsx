@@ -17,20 +17,33 @@ import {
   subDays,
 } from "date-fns";
 import { pt } from "date-fns/locale/pt";
-import { FaPlus, FaEdit, FaStar } from "react-icons/fa";
+import { FaPlus, FaEye, FaStar } from "react-icons/fa";
 
 import Dialog from "./dialog";
 import Accordions from "./accordions";
+import WardSelectDialog from "./ward-select-dialog";
 export interface Events {
   date: string;
   memberName: string;
   address: string;
   phone: string;
   notes: string;
+  wardId?: string;
 }
 
-async function getEvents() {
-  const data = await fetch("/api/calendar");
+export interface CalendarProps {
+  wardId?: string;
+  wardName?: string;
+  stakeName?: string;
+  stakeSlug?: string;
+  wardSlug?: string;
+  defaultSelectorOpen?: boolean;
+  isHome?: boolean;
+}
+
+async function getEvents(wardId?: string) {
+  const url = wardId ? `/api/calendar?wardId=${encodeURIComponent(wardId)}` : "/api/calendar";
+  const data = await fetch(url);
   if (!data.ok) {
     throw new Error(`HTTP error! status: ${data.status} \n ${data.text()}`);
   }
@@ -48,12 +61,21 @@ const DAYS_OF_WEEK = [
   { full: "Domingo", short: "Dom" },
 ];
 
-const Calendar = () => {
+const Calendar: React.FC<CalendarProps> = ({
+  wardId,
+  wardName,
+  stakeName,
+  stakeSlug,
+  wardSlug,
+  defaultSelectorOpen = false,
+  isHome = false,
+}) => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [events, setEvents] = useState<Events[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [wardDialogOpen, setWardDialogOpen] = useState(defaultSelectorOpen);
 
   // Modal dialog state
   const [dialogState, setDialogState] = useState<{
@@ -78,7 +100,7 @@ const Calendar = () => {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const data = await getEvents();
+      const data = await getEvents(wardId);
       setEvents(data[0]?.events || []);
       setError(null);
     } catch (err) {
@@ -92,7 +114,7 @@ const Calendar = () => {
   useEffect(() => {
     setIsClient(true);
     fetchEvents();
-  }, []);
+  }, [wardId]);
 
   const handlePrevMonth = () => {
     setCurrentMonth((prev) => subMonths(prev, 1));
@@ -150,11 +172,13 @@ const Calendar = () => {
       }
     });
 
+    const payloadToSend = wardId ? { ...savedEvent, wardId } : savedEvent;
+
     if (existingIndex >= 0) {
       const response = await fetch("/api/calendar", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: savedEvent }),
+        body: JSON.stringify({ body: payloadToSend }),
       });
       if (!response.ok) {
         throw new Error("Falha ao atualizar almoço");
@@ -163,7 +187,7 @@ const Calendar = () => {
       const response = await fetch("/api/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(savedEvent),
+        body: JSON.stringify(payloadToSend),
       });
       if (!response.ok) {
         throw new Error("Falha ao agendar almoço");
@@ -248,11 +272,37 @@ const Calendar = () => {
   }
 
   return (
-    <main className="min-h-screen bg-[#f1f5f9] text-slate-800 p-1 sm:p-4 md:p-6 lg:p-8 flex justify-center items-start">
-      <div className="w-full max-w-[1520px] mx-auto flex flex-col lg:flex-row gap-3 sm:gap-5 lg:gap-8 items-start lg:items-stretch">
-        {/* ======================================================== */}
-        {/* CALENDAR SECTION (FIRST ON MOBILE via order-1 lg:order-2) */}
-        {/* ======================================================== */}
+    <main className="min-h-screen bg-[#f1f5f9] text-slate-800 p-1 sm:p-4 md:p-6 lg:p-8 flex flex-col justify-start items-center">
+      <div className="w-full max-w-[1520px] mx-auto flex flex-col gap-3">
+        {/* Stake and Ward Breadcrumb Header */}
+        <div className="flex items-center justify-between px-3 py-2 bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xs">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 font-medium">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            {stakeName && (
+              <>
+                <span className="text-slate-500 font-semibold">{stakeName}</span>
+                <span className="text-slate-300">/</span>
+              </>
+            )}
+            <span className="text-[#0f2042] font-black text-sm sm:text-base">
+              {wardName || "Ala Galeão"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setWardDialogOpen(true)}
+              className="text-[11px] sm:text-xs font-bold text-[#1e3a8a] hover:text-blue-700 bg-blue-50/80 hover:bg-blue-100/80 px-2.5 py-1 rounded-lg border border-blue-200/60 transition-all active:scale-95"
+            >
+              Trocar Ala
+            </button>
+          </div>
+        </div>
+
+        <div className="w-full flex flex-col lg:flex-row gap-3 sm:gap-5 lg:gap-8 items-start lg:items-stretch">
+          {/* ======================================================== */}
+          {/* CALENDAR SECTION (FIRST ON MOBILE via order-1 lg:order-2) */}
+          {/* ======================================================== */}
         <section className="order-1 lg:order-2 flex-1 w-full bg-white rounded-xl sm:rounded-3xl border border-slate-200/90 shadow-[0_4px_30px_rgba(15,32,66,0.04)] p-1.5 sm:p-5 md:p-7 flex flex-col gap-2 sm:gap-5 overflow-hidden">
           {/* Header Controls: Navigation and Month Title */}
           <div className="flex items-center justify-between gap-1.5 sm:gap-2 pb-1.5 sm:pb-2 border-b border-slate-100">
@@ -367,12 +417,12 @@ const Calendar = () => {
                         </span>
                       )}
 
-                      {/* Edit Icon for Booked Days */}
+                      {/* View Details Icon for Booked Days */}
                       <span
                         className="p-0.5 rounded text-slate-400 group-hover:text-[#1e3a8a] transition-colors"
-                        title="Editar almoço"
+                        title="Ver detalhes do almoço"
                       >
-                        <FaEdit className="w-2 h-2 sm:w-3 sm:h-3 text-[#1e3a8a]" />
+                        <FaEye className="w-2 h-2 sm:w-3 sm:h-3 text-[#1e3a8a]" />
                       </span>
                     </div>
 
@@ -492,8 +542,7 @@ const Calendar = () => {
             <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
               Toque no botão pulsante{" "}
               <strong className="text-[#0f2042]">+</strong> para agendar um
-              almoço ou no ícone de{" "}
-              <strong className="text-[#0f2042]">lápis</strong> para editar. O
+              almoço ou no card reservado para ver os detalhes. O
               dia de hoje está destacado em amarelo.
             </p>
           </div>
@@ -537,6 +586,28 @@ const Calendar = () => {
           onDelete={handleDeleteEvent}
         />
       )}
+
+      {/* Ward Selector Dialog with Backdrop Blur */}
+      <WardSelectDialog
+        isOpen={wardDialogOpen}
+        onClose={() => setWardDialogOpen(false)}
+        defaultStakeSlug={isHome ? undefined : stakeSlug}
+        defaultWardSlug={isHome ? undefined : wardSlug}
+        stakeName={stakeName}
+        onlyWard={!isHome && Boolean(stakeSlug)}
+        isDismissible={!isHome}
+      />
+      </div>
+
+      {/* Footer com Aviso Legal / Disclaimer Não Oficial */}
+      <footer className="w-full text-center text-xs text-slate-400 py-6 mt-6 border-t border-slate-200/60 max-w-[1520px] flex flex-col items-center gap-1">
+        <p className="font-semibold text-slate-500">
+          Calendário de Almoço com os Missionários &bull; Apoio mútuo e comunitário
+        </p>
+        <p className="text-[11px] text-slate-400 max-w-2xl text-center leading-normal">
+          Este site é uma ferramenta voluntária e independente para organização de membros locais. Não é uma publicação, aplicativo ou página oficial de A Igreja de Jesus Cristo dos Santos dos Últimos Dias.
+        </p>
+      </footer>
     </main>
   );
 };

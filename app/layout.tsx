@@ -14,9 +14,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Calendário Ala Galeão",
+  title: "Calendário de Almoço com os Missionários",
   description:
-    "Calendário dos missionários da igreja de jesus cristo dos santos dos últimos dias na ala galeão",
+    "Ferramenta independente e voluntária para organização de almoço com os missionários. Não oficial.",
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",

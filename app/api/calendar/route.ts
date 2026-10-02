@@ -6,13 +6,15 @@ import {
 } from "../controllers/calendar";
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  const data = await getMonthData();
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const wardId = searchParams.get("wardId") || undefined;
+  const data = await getMonthData(wardId);
   return NextResponse.json(data, { status: 200 });
 }
 
 export async function POST(req: Request) {
-  const body: Events = await req.json();
+  const body: Events & { wardId?: string } = await req.json();
   const result = await BookLunch(body);
   return NextResponse.json(result[0], result[1]);
 }

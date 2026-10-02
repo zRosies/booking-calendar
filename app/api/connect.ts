@@ -1,6 +1,6 @@
 import { MongoClient, Collection, Db } from "mongodb";
 import dns from "node:dns";
-import { Ward, Member, Event } from "./models";
+import { Stake, Ward, Member, Event } from "./models";
 
 const DB_NAME = "calendar";
 
@@ -51,8 +51,13 @@ export async function initDb(
 }
 
 /**
- * Typed Collections Getters (wards, members, events)
+ * Typed Collections Getters (stakes, wards, members, events)
  */
+export async function getStakesCollection(): Promise<Collection<Stake>> {
+  const db = await getDb();
+  return db.collection<Stake>("stakes");
+}
+
 export async function getWardsCollection(): Promise<Collection<Ward>> {
   const db = await getDb();
   return db.collection<Ward>("wards");
@@ -73,10 +78,10 @@ export async function getEventsCollection(): Promise<Collection<Event>> {
 
 /**
  * Criação e garantia dos índices necessários
- * - members: { wardId: 1 }
- * - members: { wardId: 1, name: 1 }
- * - events:  { wardId: 1, date: 1 }
- * - events:  { memberId: 1, date: 1 }
+ * - stakes:  { slug: 1 } (unique), { name: 1 }
+ * - wards:   { stakeId: 1 }, { slug: 1 }
+ * - members: { wardId: 1 }, { wardId: 1, name: 1 }
+ * - events:  { wardId: 1, date: 1 }, { memberId: 1, date: 1 }
  */
 let indexesCreated = false;
 
@@ -84,10 +89,20 @@ export async function ensureIndexes(): Promise<void> {
   if (indexesCreated) return;
 
   try {
+    const stakesCol = await getStakesCollection();
+    const wardsCol = await getWardsCollection();
     const membersCol = await getMembersCollection();
     const eventsCol = await getEventsCollection();
 
     await Promise.all([
+      // Índices de stakes
+      stakesCol.createIndex({ slug: 1 }, { background: true }),
+      stakesCol.createIndex({ name: 1 }, { background: true }),
+
+      // Índices de wards
+      wardsCol.createIndex({ stakeId: 1 }, { background: true }),
+      wardsCol.createIndex({ slug: 1 }, { background: true }),
+
       // Índices de members
       membersCol.createIndex({ wardId: 1 }, { background: true }),
       membersCol.createIndex({ wardId: 1, name: 1 }, { background: true }),
@@ -99,7 +114,7 @@ export async function ensureIndexes(): Promise<void> {
 
     indexesCreated = true;
     console.log(
-      " Índices do MongoDB garantidos com sucesso (wards, members, events)."
+      " Índices do MongoDB garantidos com sucesso (stakes, wards, members, events)."
     );
   } catch (error) {
     console.error("Erro ao criar índices no MongoDB:", error);

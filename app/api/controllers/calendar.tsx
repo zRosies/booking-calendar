@@ -1,6 +1,7 @@
+import { ObjectId } from "mongodb";
 import { CalendarService } from "../services/calendar.service";
 import { MigrationService } from "../services/migration.service";
-import { getEventsCollection, getDb } from "../connect";
+import { getEventsCollection, getWardsCollection, getDb } from "../connect";
 
 export interface Events {
   date: string;
@@ -8,16 +9,25 @@ export interface Events {
   address: string;
   phone: string;
   notes: string;
+  wardId?: string;
 }
 
 /**
  * Retorna os dados da Ward (Ala) com seus eventos populados.
- * Retorna no formato [{ _id: wardId, events: [...] }] garantindo compatibilidade
- * retroativa com o frontend (data[0]?.events).
+ * Suporta filtro por targetWardId ou recai na ala padrão.
  */
-export async function getMonthData() {
+export async function getMonthData(targetWardId?: string) {
   try {
-    const ward = await CalendarService.getDefaultWard();
+    let ward = null;
+    if (targetWardId && ObjectId.isValid(targetWardId)) {
+      const wardsCol = await getWardsCollection();
+      ward = await wardsCol.findOne({ _id: new ObjectId(targetWardId) });
+    }
+
+    if (!ward) {
+      ward = await CalendarService.getDefaultWard();
+    }
+
     const eventsCol = await getEventsCollection();
 
     // Verificação de auto-migração: se a collection events estiver vazia e months tiver dados
@@ -49,15 +59,19 @@ export async function getMonthData() {
 }
 
 /**
- * Criação de novo compromisso/almoço
- * 1. Encontra ou cria o membro na collection 'members'
- * 2. Valida existência de Ward e Member
- * 3. Valida event.wardId === member.wardId
- * 4. Insere o evento na collection 'events'
+ * Criação de novo compromisso/almoço para a Ward especificada (ou padrão)
  */
 export async function BookLunch(newEvent: Events) {
   try {
-    const ward = await CalendarService.getDefaultWard();
+    let ward = null;
+    if (newEvent.wardId && ObjectId.isValid(newEvent.wardId)) {
+      const wardsCol = await getWardsCollection();
+      ward = await wardsCol.findOne({ _id: new ObjectId(newEvent.wardId) });
+    }
+
+    if (!ward) {
+      ward = await CalendarService.getDefaultWard();
+    }
 
     // Encontra ou cadastra o Membro com dados fornecidos
     const member = await CalendarService.findOrCreateMember(ward._id, {
@@ -89,7 +103,15 @@ export async function BookLunch(newEvent: Events) {
  */
 export async function UpdateBookedDate(newEvent: Events) {
   try {
-    const ward = await CalendarService.getDefaultWard();
+    let ward = null;
+    if (newEvent.wardId && ObjectId.isValid(newEvent.wardId)) {
+      const wardsCol = await getWardsCollection();
+      ward = await wardsCol.findOne({ _id: new ObjectId(newEvent.wardId) });
+    }
+
+    if (!ward) {
+      ward = await CalendarService.getDefaultWard();
+    }
 
     // Atualiza ou encontra o membro
     const member = await CalendarService.findOrCreateMember(ward._id, {

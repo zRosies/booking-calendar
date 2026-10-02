@@ -6,17 +6,23 @@ import { ObjectId } from "mongodb";
  */
 export interface Ward {
   _id?: ObjectId;
-  name: string;
+  stakeId?: ObjectId;  // Referência para stakes._id
+  name: string;        // Ex: "Ala Galeão"
+  slug?: string;       // Ex: "galeao" (amigável para rotas /[stake]/[ward])
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export interface CreateWardDto {
+  stakeId?: ObjectId | string;
   name: string;
+  slug?: string;
 }
 
 export interface UpdateWardDto {
+  stakeId?: ObjectId | string;
   name?: string;
+  slug?: string;
 }
 
 // Alias para compatibilidade semântica
