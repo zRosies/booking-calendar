@@ -59,8 +59,13 @@ export interface CallerAuth {
   isAdmin?: boolean;
 }
 
+export function getAdminPassword(): string {
+  const pwd = process.env.ADMIN_PASSWORD || "";
+  return pwd.trim().replace(/^["']|["']$/g, "");
+}
+
 export function verifyAdminSession(token?: string): boolean {
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminPassword = getAdminPassword();
   if (!adminPassword || !token) return false;
   const expectedToken = crypto
     .createHmac("sha256", adminPassword)
