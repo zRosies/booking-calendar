@@ -17,11 +17,6 @@ export const metadata: Metadata = {
   title: "Calendário de Almoço com os Missionários",
   description:
     "Ferramenta independente e voluntária para organização de almoço com os missionários. Não oficial.",
-  icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
-  },
 };
 
 export default function RootLayout({

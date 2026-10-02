@@ -6,10 +6,14 @@ import { ObjectId } from "mongodb";
  */
 export interface Event {
   _id?: ObjectId;
-  wardId: ObjectId;   // Referência direta para wards._id
-  memberId: ObjectId; // Referência direta para members._id
-  date: Date;         // Data do almoço
-  notes?: string;     // Observações opcionais
+  wardId: ObjectId;          // Referência direta para wards._id
+  memberId: ObjectId;        // Referência direta para members._id
+  date: Date;                // Data do almoço
+  notes?: string;            // Observações opcionais
+  userEmail?: string;        // E-mail do usuário autenticado (Google)
+  userName?: string;         // Nome do usuário autenticado
+  guestToken?: string;       // Token único de sessão do navegador para quem não logou
+  authProvider?: "google" | "guest";
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -19,6 +23,10 @@ export interface CreateEventDto {
   memberId: ObjectId;
   date: Date | string;
   notes?: string;
+  userEmail?: string;
+  userName?: string;
+  guestToken?: string;
+  authProvider?: "google" | "guest";
 }
 
 export interface UpdateEventDto {
@@ -26,6 +34,9 @@ export interface UpdateEventDto {
   memberId?: ObjectId;
   date?: Date | string;
   notes?: string;
+  userEmail?: string;
+  userName?: string;
+  guestToken?: string;
 }
 
 /**
@@ -40,6 +51,10 @@ export interface PopulatedCalendarEvent {
   address?: string;
   phone?: string;
   notes?: string;
+  userEmail?: string;
+  userName?: string;
+  guestToken?: string;
+  authProvider?: "google" | "guest";
   createdAt?: Date;
   updatedAt?: Date;
 }

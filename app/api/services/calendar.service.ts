@@ -171,6 +171,10 @@ export class CalendarService {
           memberId: 1,
           date: 1,
           notes: { $ifNull: ["$notes", ""] },
+          userEmail: { $ifNull: ["$userEmail", ""] },
+          userName: { $ifNull: ["$userName", ""] },
+          guestToken: { $ifNull: ["$guestToken", ""] },
+          authProvider: { $ifNull: ["$authProvider", "guest"] },
           createdAt: 1,
           updatedAt: 1,
           memberName: { $ifNull: ["$memberDoc.name", "Membro não encontrado"] },
@@ -182,9 +186,12 @@ export class CalendarService {
 
     const results = await eventsCol.aggregate<PopulatedCalendarEvent>(pipeline).toArray();
 
-    // Normaliza datas para ISO string para compatibilidade imediata com date-fns no frontend
+    // Normaliza datas para ISO string e IDs para strings para compatibilidade no frontend
     return results.map((evt) => ({
       ...evt,
+      _id: evt._id ? String(evt._id) : undefined,
+      wardId: String(evt.wardId),
+      memberId: String(evt.memberId),
       date: evt.date instanceof Date ? evt.date.toISOString() : String(evt.date),
     }));
   }
@@ -211,12 +218,55 @@ export class CalendarService {
       memberId: memberObjectId,
       date: eventDate,
       notes: dto.notes || "",
+      userEmail: dto.userEmail,
+      userName: dto.userName,
+      guestToken: dto.guestToken,
+      authProvider: dto.authProvider || (dto.userEmail ? "google" : "guest"),
       createdAt: now,
       updatedAt: now,
     };
 
     const result = await eventsCol.insertOne(newEvent);
     return { ...newEvent, _id: result.insertedId };
+  }
+
+  /**
+   * Localiza um Evento por ID ou Data (com tolerância UTC)
+   */
+  static async findEvent(identifier: {
+    eventId?: ObjectId;
+    date?: Date | string;
+    wardId?: ObjectId;
+  }): Promise<Event | null> {
+    const eventsCol = await getEventsCollection();
+    const filter: Record<string, unknown> = {};
+
+    if (identifier.eventId) {
+      filter._id = identifier.eventId;
+    } else if (identifier.date) {
+      if (
+        typeof identifier.date === "string" &&
+        ObjectId.isValid(identifier.date) &&
+        identifier.date.length === 24
+      ) {
+        const found = await eventsCol.findOne({ _id: new ObjectId(identifier.date) });
+        if (found) return found;
+      }
+      const d = identifier.date instanceof Date ? identifier.date : new Date(identifier.date);
+      if (!isNaN(d.getTime())) {
+        const startOfDay = new Date(d);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+        const endOfDay = new Date(d);
+        endOfDay.setUTCHours(23, 59, 59, 999);
+        filter.date = { $gte: startOfDay, $lte: endOfDay };
+      }
+    }
+
+    if (identifier.wardId) {
+      filter.wardId = identifier.wardId;
+    }
+
+    return eventsCol.findOne(filter);
   }
 
   /**

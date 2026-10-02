@@ -44,7 +44,7 @@ export async function getDb(dbName: string = DB_NAME): Promise<Db> {
  */
 export async function initDb(
   db: string = DB_NAME,
-  collection: string
+  collection: string,
 ): Promise<Collection> {
   const database = await getDb(db);
   return database.collection(collection);
@@ -80,7 +80,7 @@ export async function getEventsCollection(): Promise<Collection<Event>> {
  * Criação e garantia dos índices necessários
  * - stakes:  { slug: 1 } (unique), { name: 1 }
  * - wards:   { stakeId: 1 }, { slug: 1 }
- * - members: { wardId: 1 }, { wardId: 1, name: 1 }
+ * - members: { wardId: 1 }, { wardId: 1, name: 1 }, { email: 1 } (sparse)
  * - events:  { wardId: 1, date: 1 }, { memberId: 1, date: 1 }
  */
 let indexesCreated = false;
@@ -103,18 +103,27 @@ export async function ensureIndexes(): Promise<void> {
       wardsCol.createIndex({ stakeId: 1 }, { background: true }),
       wardsCol.createIndex({ slug: 1 }, { background: true }),
 
-      // Índices de members
+      // Índices de members (com suporte a RBAC e busca por e-mail)
       membersCol.createIndex({ wardId: 1 }, { background: true }),
       membersCol.createIndex({ wardId: 1, name: 1 }, { background: true }),
+      membersCol.createIndex({ email: 1 }, { background: true, sparse: true }),
 
       // Índices de events
       eventsCol.createIndex({ wardId: 1, date: 1 }, { background: true }),
       eventsCol.createIndex({ memberId: 1, date: 1 }, { background: true }),
+      eventsCol.createIndex(
+        { guestToken: 1 },
+        { background: true, sparse: true },
+      ),
+      eventsCol.createIndex(
+        { userEmail: 1 },
+        { background: true, sparse: true },
+      ),
     ]);
 
     indexesCreated = true;
     console.log(
-      " Índices do MongoDB garantidos com sucesso (stakes, wards, members, events)."
+      " Índices do MongoDB garantidos com sucesso (stakes, wards, members, events).",
     );
   } catch (error) {
     console.error("Erro ao criar índices no MongoDB:", error);

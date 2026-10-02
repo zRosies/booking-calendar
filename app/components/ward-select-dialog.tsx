@@ -41,8 +41,12 @@ export default function WardSelectDialog({
   const router = useRouter();
   const [stakes, setStakes] = useState<StakeItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedStakeSlug, setSelectedStakeSlug] = useState(defaultStakeSlug || "");
-  const [selectedWardSlug, setSelectedWardSlug] = useState(defaultWardSlug || "");
+  const [selectedStakeSlug, setSelectedStakeSlug] = useState(
+    defaultStakeSlug || "",
+  );
+  const [selectedWardSlug, setSelectedWardSlug] = useState(
+    defaultWardSlug || "",
+  );
 
   // Fechar com ESC somente se for descartável (fora da home)
   useEffect(() => {
@@ -70,7 +74,9 @@ export default function WardSelectDialog({
             if (foundStake) {
               setSelectedStakeSlug(foundStake.slug);
               if (defaultWardSlug) {
-                const foundWard = foundStake.wards?.find((w) => w.slug === defaultWardSlug);
+                const foundWard = foundStake.wards?.find(
+                  (w) => w.slug === defaultWardSlug,
+                );
                 if (foundWard) {
                   setSelectedWardSlug(foundWard.slug);
                 } else if (foundStake.wards?.length > 0) {
@@ -133,7 +139,7 @@ export default function WardSelectDialog({
               🍲
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-slate-900 leading-snug tracking-tight">
+              <h2 className="text-base md:text-lg font-black text-slate-900 leading-snug tracking-tight">
                 {onlyWard ? "Trocar de Ala" : "Almoço com os Missionários"}
               </h2>
               <p className="text-xs font-semibold text-slate-500">
@@ -168,7 +174,9 @@ export default function WardSelectDialog({
           {loading ? (
             <div className="py-6 flex flex-col items-center justify-center gap-2 text-slate-400">
               <div className="w-6 h-6 border-2 border-slate-300 border-t-[#0f2042] rounded-full animate-spin" />
-              <span className="text-xs font-medium">Carregando congregações...</span>
+              <span className="text-xs font-medium">
+                Carregando congregações...
+              </span>
             </div>
           ) : (
             <form onSubmit={handleGoToCalendar} className="space-y-4">
@@ -183,7 +191,8 @@ export default function WardSelectDialog({
               ) : (
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    1. Selecione a Estaca <span className="text-rose-500">*</span>
+                    1. Selecione a Estaca{" "}
+                    <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={selectedStakeSlug}
@@ -245,7 +254,9 @@ export default function WardSelectDialog({
                 disabled={!selectedStakeSlug || !selectedWardSlug}
                 className="w-full mt-2 py-3 px-5 rounded-xl bg-gradient-to-r from-[#0f2042] to-[#1e3a8a] hover:from-[#172554] hover:to-[#1d4ed8] text-white text-sm font-bold shadow-md shadow-[#0f2042]/15 hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <span>{onlyWard ? "Mudar para esta Ala" : "Acessar Calendário"}</span>
+                <span>
+                  {onlyWard ? "Mudar para esta Ala" : "Acessar Calendário"}
+                </span>
                 <FaArrowRight className="w-3.5 h-3.5" />
               </button>
 
@@ -265,7 +276,9 @@ export default function WardSelectDialog({
           {/* Aviso Legal de Não Afiliação Oficial */}
           <div className="pt-3 border-t border-slate-100 text-center">
             <p className="text-[10px] text-slate-400 leading-tight">
-              Iniciativa independente de apoio mútuo comunitário. Não é um aplicativo, publicação ou site oficial de A Igreja de Jesus Cristo dos Santos dos Últimos Dias.
+              Iniciativa independente de apoio mútuo comunitário. Não é um
+              aplicativo, publicação ou site oficial de A Igreja de Jesus Cristo
+              dos Santos dos Últimos Dias.
             </p>
           </div>
         </div>
